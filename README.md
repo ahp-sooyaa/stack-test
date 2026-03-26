@@ -5,6 +5,7 @@ A small production-leaning validation app for this stack:
 - Next.js App Router + TypeScript
 - Tailwind CSS + shadcn/ui
 - Supabase (Postgres, Auth, Realtime)
+- Drizzle ORM (schema + migrations)
 - Cloudflare R2 (receipt image upload)
 - Railway deploy target
 - pnpm package manager
@@ -16,6 +17,7 @@ This repo is intentionally small and monolithic so you can quickly validate inte
 - Email/password sign-up and sign-in with Supabase Auth
 - Auth route protection with Next.js `proxy.ts`
 - Role-based authorization (`admin`, `staff`) using `public.app_users` table
+- Confirmation-aware auth flow via `/auth/confirm` route (works with Supabase email confirm enabled)
 - Receipt CRUD:
   - Staff: create receipt + image upload, view own receipts
   - Admin: view all receipts, update status, delete receipts
@@ -67,12 +69,16 @@ Required variables are documented in `.env.example`.
 1. Create a Supabase project.
 2. In Supabase SQL Editor, run:
    - `supabase/migrations/20260326143000_init_receipt_ops.sql`
+   - Optional standalone trigger SQL: `supabase/sql_app_users_trigger.sql`
 3. In Supabase project settings, copy:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-4. In Auth settings:
+4. In Supabase project settings, copy a Postgres connection string for Drizzle:
+   - `DATABASE_URL` (or `SUPABASE_DB_URL`) in `.env.local`
+   - Use a server-side connection string only (never `NEXT_PUBLIC_*`)
+5. In Auth settings:
    - enable Email auth
-   - optional: disable email confirmation for faster local testing
+   - enable/disable email confirmation based on your test case (app handles both)
 
 ## 4) Configure Cloudflare R2
 
@@ -95,6 +101,19 @@ pnpm dev
 ```
 
 Open `http://localhost:3000`.
+
+## Drizzle Migration Commands
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+```
+
+You can also push directly to the DB:
+
+```bash
+pnpm db:push
+```
 
 ## Promote a User to Admin
 
@@ -141,6 +160,9 @@ No `railway.json` is required for this app.
 - `pnpm build` - production build
 - `pnpm start` - production server
 - `pnpm lint` - lint checks
+- `pnpm db:generate` - generate Drizzle migration
+- `pnpm db:migrate` - run Drizzle migration
+- `pnpm db:push` - push schema directly
 
 ## RLS Summary
 

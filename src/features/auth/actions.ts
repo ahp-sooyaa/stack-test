@@ -7,10 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const authSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address."),
-  password: z
-    .string()
-    .trim()
-    .min(8, "Password must be at least 8 characters."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
 function redirectWithMessage(
@@ -20,6 +17,28 @@ function redirectWithMessage(
 ): never {
   const encoded = encodeURIComponent(message);
   redirect(`${path}?${type}=${encoded}`);
+}
+
+function mapSupabaseAuthError(message: string) {
+  const lower = message.toLowerCase();
+
+  if (lower.includes("signups not allowed")) {
+    return "Sign-ups are disabled in Supabase Auth settings.";
+  }
+
+  if (lower.includes("email not confirmed")) {
+    return "Email is not confirmed. Please confirm your email first.";
+  }
+
+  if (lower.includes("invalid login credentials")) {
+    return "Invalid email or password.";
+  }
+
+  if (lower.includes("email logins are disabled")) {
+    return "Email/password sign-in is disabled in Supabase Auth settings.";
+  }
+
+  return message;
 }
 
 export async function signInAction(formData: FormData) {
@@ -37,7 +56,7 @@ export async function signInAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(credentials);
 
   if (error) {
-    redirectWithMessage("/sign-in", "error", error.message);
+    redirectWithMessage("/sign-in", "error", mapSupabaseAuthError(error.message));
   }
 
   redirect("/dashboard");
@@ -61,12 +80,12 @@ export async function signUpAction(formData: FormData) {
   const { data, error } = await supabase.auth.signUp({
     ...credentials,
     options: {
-      emailRedirectTo: `${origin}/dashboard`,
+      emailRedirectTo: `${origin}/auth/confirm?next=/dashboard`,
     },
   });
 
   if (error) {
-    redirectWithMessage("/sign-up", "error", error.message);
+    redirectWithMessage("/sign-up", "error", mapSupabaseAuthError(error.message));
   }
 
   if (data.session) {

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const AUTH_ROUTES = new Set(["/sign-in", "/sign-up"]);
+const PUBLIC_ROUTES = new Set(["/auth/confirm"]);
 
 function isPublicAsset(pathname: string) {
   return (
@@ -14,7 +15,7 @@ function isPublicAsset(pathname: string) {
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (isPublicAsset(pathname)) {
+  if (isPublicAsset(pathname) || PUBLIC_ROUTES.has(pathname)) {
     return NextResponse.next();
   }
 
